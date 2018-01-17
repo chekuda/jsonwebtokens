@@ -8,11 +8,15 @@ exports.signup = (req, res) => {
   const newUser = new User(req.body.username, req.body.password, false)
 
   fs.writeFile('userData.json', JSON.stringify(newUser), err => {
-    res.send(
-      err
-      ? { success: false, message: err }
-      : { success: true, message: newUser.name, redirect: '/sucess.html' }
-    )
+    if(err) res.status(401).send({success: false, msg: 'Couldnt save the user, try again'})
+
+    token = jwt.sign({ admin: false }, config.secret, { expiresIn: '2m' })
+
+    if(!token) {
+      res.status(401).send({success: false, msg: 'Couldnt create token'})
+    }
+
+    res.json({ success: true, message: 'success', token: token, redirect: '/home.html' })
   })
 }
 
@@ -21,12 +25,28 @@ exports.login = (req, res) => {
 
   if(req.body.username && req.body.password) {
     if(req.body.username === userData.name && req.body.password === userData.password) {
-      token = jwt.sign({ admin: false }, config.secret, { expiresIn: '1m' })
+      token = jwt.sign({ admin: false }, config.secret, { expiresIn: '2m' })
+
+      if(!token) {
+        res.status(401).send({success: false, msg: 'No couldnt create token'})
+      }
     }
   }
-  res.json(
-    token
-      ? { success: true, message: 'success', token: token, redirect: '/home.html' }
-      : { success: false, message: 'error', token: token }
-  )
+  res.json({ success: true, message: 'success', token: token, redirect: '/home.html' })
+}
+
+exports.testToken = (req, res) => {
+  if(!req.headers.authentication){
+    res.status(401).send({success: false, msg: 'No Authentication header'})
+  }
+  const token = req.headers.authentication.split('Bearer ')[1]
+
+  jwt.verify(token, config.secret, (err, decoded) => {
+    if(err) {
+      res.status(401).send({success: false, msg: 'No Valid Token'})
+    } else {
+      console.log(decoded)
+      res.json({ success: true, msg: 'TOKEN VALID' })
+    }
+  })
 }

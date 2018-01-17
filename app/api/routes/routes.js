@@ -5,4 +5,6 @@ module.exports = app => {
     .post(controllers.signup)
   app.route('/api/login')
     .post(controllers.login)
+  app.route('/api/testtoken')
+    .get(controllers.testToken)
 }
